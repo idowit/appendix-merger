@@ -16,10 +16,19 @@ A Streamlit application that merges a main document with multiple appendices int
 ## Setup
 
 1. **Create virtual environment**:
-   ```powershell
-   cd "c:\Users\idowi\Documents\Ido's Documents\kfirs_document_merger"
+   ```bash
+   # Clone the repository and navigate to it
+   git clone https://github.com/YOUR_USERNAME/kfirs_document_merger.git
+   cd kfirs_document_merger
+   
+   # Create virtual environment
    python -m venv venv
+   
+   # Activate (Windows PowerShell)
    .\venv\Scripts\Activate.ps1
+   
+   # Or activate (Linux/Mac)
+   source venv/bin/activate
    ```
 
 2. **Install dependencies**:
