@@ -1,4 +1,4 @@
-# Document Merger
+# Appendix Merger
 
 A Streamlit application that merges a main document with multiple appendices into a single PDF with:
 - Table of Contents (TOC)
@@ -18,8 +18,8 @@ A Streamlit application that merges a main document with multiple appendices int
 1. **Create virtual environment**:
    ```bash
    # Clone the repository and navigate to it
-   git clone https://github.com/YOUR_USERNAME/kfirs_document_merger.git
-   cd kfirs_document_merger
+   git clone https://github.com/YOUR_USERNAME/appendix-merger.git
+   cd appendix-merger
    
    # Create virtual environment
    python -m venv venv
