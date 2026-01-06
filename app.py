@@ -33,33 +33,41 @@ HEBREW_FONT = "Helvetica"  # Fallback
 HEBREW_FONT_BOLD = "Helvetica-Bold"
 
 def setup_hebrew_fonts():
-    """Register Hebrew-supporting fonts from Windows system fonts."""
+    """Register Hebrew-supporting fonts. Uses bundled fonts first, then Windows fallback."""
     global HEBREW_FONT, HEBREW_FONT_BOLD
     
-    # Common Windows font paths
-    font_paths = [
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\arialbd.ttf",
-        r"C:\Windows\Fonts\david.ttf",
-        r"C:\Windows\Fonts\davidbd.ttf",
-    ]
+    # Get the directory where app.py is located
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Bundled fonts (for Streamlit Cloud / Linux)
+    bundled_regular = os.path.join(app_dir, "fonts", "NotoSansHebrew-Regular.ttf")
+    bundled_bold = os.path.join(app_dir, "fonts", "NotoSansHebrew-Bold.ttf")
     
     try:
-        # Try Arial first (widely available, supports Hebrew)
-        if os.path.exists(r"C:\Windows\Fonts\arial.ttf"):
-            pdfmetrics.registerFont(TTFont('Arial', r"C:\Windows\Fonts\arial.ttf"))
-            HEBREW_FONT = 'Arial'
-        if os.path.exists(r"C:\Windows\Fonts\arialbd.ttf"):
-            pdfmetrics.registerFont(TTFont('Arial-Bold', r"C:\Windows\Fonts\arialbd.ttf"))
-            HEBREW_FONT_BOLD = 'Arial-Bold'
+        # Try bundled fonts first (cross-platform)
+        if os.path.exists(bundled_regular):
+            pdfmetrics.registerFont(TTFont('NotoHebrew', bundled_regular))
+            HEBREW_FONT = 'NotoHebrew'
+        if os.path.exists(bundled_bold):
+            pdfmetrics.registerFont(TTFont('NotoHebrew-Bold', bundled_bold))
+            HEBREW_FONT_BOLD = 'NotoHebrew-Bold'
         
-        # Try David font (better for Hebrew legal docs)
-        if os.path.exists(r"C:\Windows\Fonts\david.ttf"):
-            pdfmetrics.registerFont(TTFont('David', r"C:\Windows\Fonts\david.ttf"))
-            HEBREW_FONT = 'David'
-        if os.path.exists(r"C:\Windows\Fonts\davidbd.ttf"):
-            pdfmetrics.registerFont(TTFont('David-Bold', r"C:\Windows\Fonts\davidbd.ttf"))
-            HEBREW_FONT_BOLD = 'David-Bold'
+        # If bundled fonts not found, try Windows system fonts
+        if HEBREW_FONT == "Helvetica":
+            if os.path.exists(r"C:\Windows\Fonts\arial.ttf"):
+                pdfmetrics.registerFont(TTFont('Arial', r"C:\Windows\Fonts\arial.ttf"))
+                HEBREW_FONT = 'Arial'
+            if os.path.exists(r"C:\Windows\Fonts\arialbd.ttf"):
+                pdfmetrics.registerFont(TTFont('Arial-Bold', r"C:\Windows\Fonts\arialbd.ttf"))
+                HEBREW_FONT_BOLD = 'Arial-Bold'
+            
+            # Try David font (better for Hebrew legal docs)
+            if os.path.exists(r"C:\Windows\Fonts\david.ttf"):
+                pdfmetrics.registerFont(TTFont('David', r"C:\Windows\Fonts\david.ttf"))
+                HEBREW_FONT = 'David'
+            if os.path.exists(r"C:\Windows\Fonts\davidbd.ttf"):
+                pdfmetrics.registerFont(TTFont('David-Bold', r"C:\Windows\Fonts\davidbd.ttf"))
+                HEBREW_FONT_BOLD = 'David-Bold'
             
     except Exception as e:
         print(f"Warning: Could not load Hebrew fonts: {e}")
