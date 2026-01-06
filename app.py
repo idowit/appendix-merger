@@ -404,19 +404,63 @@ def add_appendix_marking(pdf_bytes: bytes, appendix_number: str) -> bytes:
     
     for i, page in enumerate(reader.pages):
         if i == 0:  # First page only
-            # Use the visible dimensions (after rotation)
-            page_width = float(page.mediabox.width)
-            page_height = float(page.mediabox.height)
+            # Get rotation from the page (0, 90, 180, 270)
+            rotation = int(page.get('/Rotate') or 0)
             
+            # Get the raw mediabox dimensions
+            raw_width = float(page.mediabox.width)
+            raw_height = float(page.mediabox.height)
+            
+            # Determine the VISUAL dimensions based on rotation
+            if rotation in [90, 270]:
+                visual_width, visual_height = raw_height, raw_width
+            else:
+                visual_width, visual_height = raw_width, raw_height
+            
+            # Create overlay with the same raw dimensions as the page
             overlay_buffer = io.BytesIO()
-            c = canvas.Canvas(overlay_buffer, pagesize=(page_width, page_height))
+            c = canvas.Canvas(overlay_buffer, pagesize=(raw_width, raw_height))
             
-            # Draw marking box in top-right corner
+            # Box dimensions
             box_width = 70
             box_height = 30
-            box_x = page_width - box_width - 15
-            box_y = page_height - box_height - 15
+            margin = 15
             
+            # Calculate position based on rotation
+            # We want top-right corner in the VISUAL (rotated) view
+            if rotation == 0:
+                # Normal: top-right is (width-margin, height-margin)
+                box_x = raw_width - box_width - margin
+                box_y = raw_height - box_height - margin
+            elif rotation == 90:
+                # 90° clockwise: visual top-right maps to raw bottom-right
+                box_x = raw_width - box_height - margin
+                box_y = margin
+                # Rotate canvas
+                c.saveState()
+                c.translate(box_x + box_height/2, box_y + box_width/2)
+                c.rotate(90)
+                c.translate(-box_width/2, -box_height/2)
+                box_x, box_y = 0, 0
+            elif rotation == 180:
+                # 180°: visual top-right maps to raw bottom-left
+                box_x = margin
+                box_y = margin
+            elif rotation == 270:
+                # 270° clockwise (90° counter-clockwise): visual top-right maps to raw top-left
+                box_x = margin
+                box_y = raw_height - box_height - margin
+                # Rotate canvas
+                c.saveState()
+                c.translate(box_x + box_height/2, box_y + box_height/2)
+                c.rotate(-90)
+                c.translate(-box_width/2, -box_height/2)
+                box_x, box_y = 0, 0
+            else:
+                box_x = raw_width - box_width - margin
+                box_y = raw_height - box_height - margin
+            
+            # Draw the marking box
             c.setFillColor(HexColor('#F5F5F5'))
             c.setStrokeColor(black)
             c.setLineWidth(1)
@@ -428,6 +472,9 @@ def add_appendix_marking(pdf_bytes: bytes, appendix_number: str) -> bytes:
             c.setFillColor(black)
             c.setFont(HEBREW_FONT_BOLD, 12)
             c.drawCentredString(box_x + box_width/2, box_y + 10, marking_text)
+            
+            if rotation in [90, 270]:
+                c.restoreState()
             
             c.save()
             overlay_buffer.seek(0)
