@@ -404,17 +404,25 @@ def add_appendix_marking(pdf_bytes: bytes, appendix_number: str) -> bytes:
     
     for i, page in enumerate(reader.pages):
         if i == 0:  # First page only
+            # Get page dimensions, accounting for rotation
+            rotation = page.get('/Rotate', 0) or 0
             page_width = float(page.mediabox.width)
             page_height = float(page.mediabox.height)
             
+            # If page is rotated 90 or 270 degrees, swap dimensions for the overlay
+            if rotation in [90, 270]:
+                overlay_width, overlay_height = page_height, page_width
+            else:
+                overlay_width, overlay_height = page_width, page_height
+            
             overlay_buffer = io.BytesIO()
-            c = canvas.Canvas(overlay_buffer, pagesize=(page_width, page_height))
+            c = canvas.Canvas(overlay_buffer, pagesize=(overlay_width, overlay_height))
             
             # Draw marking box in top-right corner
             box_width = 70
             box_height = 30
-            box_x = page_width - box_width - 15
-            box_y = page_height - box_height - 15
+            box_x = overlay_width - box_width - 15
+            box_y = overlay_height - box_height - 15
             
             c.setFillColor(HexColor('#F5F5F5'))
             c.setStrokeColor(black)
@@ -432,7 +440,13 @@ def add_appendix_marking(pdf_bytes: bytes, appendix_number: str) -> bytes:
             overlay_buffer.seek(0)
             
             overlay_reader = PdfReader(overlay_buffer)
-            page.merge_page(overlay_reader.pages[0])
+            overlay_page = overlay_reader.pages[0]
+            
+            # Apply same rotation to overlay if original page is rotated
+            if rotation:
+                overlay_page.rotate(rotation)
+            
+            page.merge_page(overlay_page)
         
         writer.add_page(page)
     
