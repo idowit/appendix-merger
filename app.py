@@ -149,11 +149,19 @@ def get_appendix_number(index: int, format_type: str) -> str:
 
 def reverse_hebrew(text: str) -> str:
     """
-    Reverse Hebrew text for RTL display in PDF.
-    ReportLab doesn't handle RTL automatically, so we reverse the string.
+    Prepare Hebrew text for RTL display in PDF using python-bidi.
+    The bidi library implements the Unicode Bidirectional Algorithm
+    which correctly handles mixed Hebrew/English/numbers/punctuation.
     """
-    # For mixed content, we need to handle Hebrew portions
-    return text[::-1]
+    if not text:
+        return text
+    
+    try:
+        from bidi.algorithm import get_display
+        return get_display(text)
+    except ImportError:
+        # Fallback: simple reversal if bidi not available
+        return text[::-1]
 
 
 # =============================================================================
@@ -238,10 +246,10 @@ def make_cover_pdf(
     center_x = A4_WIDTH / 2
     center_y = A4_HEIGHT / 2
     
-    # Hebrew text needs to be reversed for RTL display
+    # Hebrew text and numbers are now handled properly by reverse_hebrew
     appendix_text = reverse_hebrew(f"נספח {appendix_number}")
     title_text = reverse_hebrew(title) if title else ""
-    pages_text = f"{end_page} - {start_page} :םידומע"  # "עמודים:" reversed
+    pages_text = reverse_hebrew(f"עמודים: {start_page} - {end_page}")
     
     if template == 'modern':
         # Modern template with colored header bar
