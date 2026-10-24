@@ -1,63 +1,39 @@
 # Appendix Merger
 
-A Streamlit application that merges a main document with multiple appendices into a single PDF with:
-- Table of Contents (TOC)
-- Appendix cover sheets
-- Continuous page numbering
+A Hebrew-first desktop web application for compiling legal appendices. It combines a main document with ordered PDF, JPG, and PNG appendices; adds a table of contents, covers, appendix markers, and continuous page numbers; and keeps every source file inside the browser.
 
-## Features
+The application also includes a lightweight **Quick Merge** workflow for joining files without appendix formatting. Drafts are stored locally, and a portable Appendix Compilation File (`.appendix`) can be exported for transfer.
 
-- Upload PDFs and images (JPG/PNG)
-- Edit appendix titles
-- Select which file is the "Main Document"
-- Reorder appendices with Up/Down buttons
-- Generate merged PDF with automatic TOC and page numbers
+## Local development
 
-## Setup
+Requires Node.js 22.18 or newer.
 
-1. **Create virtual environment**:
-   ```bash
-   # Clone the repository and navigate to it
-   git clone https://github.com/YOUR_USERNAME/appendix-merger.git
-   cd appendix-merger
-   
-   # Create virtual environment
-   python -m venv venv
-   
-   # Activate (Windows PowerShell)
-   .\venv\Scripts\Activate.ps1
-   
-   # Or activate (Linux/Mac)
-   source venv/bin/activate
-   ```
+```powershell
+npm install
+npm run dev
+```
 
-2. **Install dependencies**:
-   ```powershell
-   pip install -r requirements.txt
-   ```
+Vite serves the application at `http://localhost:5173`. Useful checks:
 
-3. **Run the application**:
-   ```powershell
-   streamlit run app.py
-   ```
+```powershell
+npm test          # unit and component tests
+npm run test:e2e # Chromium workflow and RTL checks
+npm run build    # strict TypeScript check and production bundle
+```
 
-4. Open your browser to the URL shown (typically http://localhost:8501)
+PDF generation runs in `src/pdf/generation.worker.ts`; changing it should not make the interface unresponsive. Generated PDFs and uploaded client documents must remain outside version control.
 
-## Usage
+## Private deployment on Cloudflare
 
-1. Upload your files (at least 2 files required)
-2. Edit titles for each file as needed
-3. Select one file as the "Main Document"
-4. Reorder appendices using Up/Down buttons
-5. Click "Generate PDF"
-6. Download the merged PDF
+The production build is served by a Cloudflare Worker. The Worker authenticates every page and asset with one shared password and a signed, seven-day secure cookie. Uploaded documents are never sent to the Worker.
 
-## Output PDF Structure
+1. Create a free Cloudflare account and authenticate the CLI with `npx wrangler login`.
+2. Set the shared password with `npx wrangler secret put APP_PASSWORD`.
+3. Set a separate high-entropy signing value with `npx wrangler secret put SESSION_SECRET`.
+4. Run `npm run deploy`.
 
-1. **Main Document** - Your selected main file
-2. **Table of Contents** - Lists all appendices with page numbers
-3. **Appendices** - Each appendix preceded by a cover sheet showing:
-   - Appendix number (1, 2, 3...)
-   - Appendix title
+Rotate either secret with the same `wrangler secret put` command. `wrangler.jsonc` contains the remaining deployment configuration; no payment credentials or cloud document storage are required.
 
-All pages are numbered continuously from 1 to N.
+## Privacy and compatibility
+
+Processing, draft storage, previews, and `.appendix` archives stay on the local computer. The supported target is current desktop browsers on Windows and macOS. The total size limit for one workspace is 250 MB.

@@ -1,0 +1,1 @@
+export const MAX_COMPILATION_BYTES = 250 * 1024 * 1024;
