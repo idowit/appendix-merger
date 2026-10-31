@@ -17,15 +17,18 @@ async function pdfDocument(id: string, sizes: Array<[number, number]>): Promise<
   };
 }
 
-function textOperationCount(document: PDFDocument, page: PDFPage): number {
+function pageOperations(document: PDFDocument, page: PDFPage): string {
   const contents = page.node.Contents();
-  if (!contents) return 0;
+  if (!contents) return "";
   const entries = contents instanceof PDFArray ? contents.asArray() : [contents];
-  const operators = entries.map((entry) => {
+  return entries.map((entry) => {
     const stream = document.context.lookup(entry, PDFRawStream);
     return new TextDecoder().decode(decodePDFRawStream(stream).decode());
   }).join("\n");
-  return operators.match(/\bBT\b/g)?.length ?? 0;
+}
+
+function textOperationCount(document: PDFDocument, page: PDFPage): number {
+  return pageOperations(document, page).match(/\bBT\b/g)?.length ?? 0;
 }
 
 describe("generateFinishedPdf", () => {
@@ -43,7 +46,7 @@ describe("generateFinishedPdf", () => {
     const bytes = await generateFinishedPdf({
       mode: "appendix",
       documents: [main, appendix],
-      settings: { numbering: "hebrew", outputLanguage: "he", outputStyle: "polished", appendixMarkers: true, pageNumbers: true },
+      settings: { numbering: "hebrew", outputLanguage: "he", tableOfContents: true, appendixCovers: true, appendixMarkers: true, pageNumbers: true },
     }, { regularFont, boldFont });
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
     const pdf = await pdfjs.getDocument({ data: Uint8Array.from(bytes), disableWorker: true }).promise;
@@ -54,12 +57,18 @@ describe("generateFinishedPdf", () => {
     const tocText = await extract(2);
     const coverText = await extract(3);
     const appendixText = await extract(4);
+    const mainText = await extract(1);
+    const generated = await PDFDocument.load(bytes);
 
+    expect(mainText).toContain("1");
     expect(tocText).toContain("רשימת נספחים");
     expect(tocText).toContain("נספח א");
+    expect(tocText).toContain("3–5");
     expect(coverText).toContain("נספח א");
     expect(coverText).toContain("הסכם מיוחד");
-    expect(coverText).toContain("4–5");
+    expect(coverText).not.toContain("עמודים");
+    expect(coverText).not.toContain("3–5");
+    expect(pageOperations(generated, generated.getPage(2))).not.toMatch(/\bre\b/);
     expect(appendixText).toContain("נספח א");
   });
 
@@ -73,7 +82,8 @@ describe("generateFinishedPdf", () => {
       settings: {
         numbering: "decimal",
         outputLanguage: "en",
-        outputStyle: "minimal",
+        tableOfContents: true,
+        appendixCovers: true,
         appendixMarkers: false,
         pageNumbers: false,
       },
@@ -99,7 +109,8 @@ describe("generateFinishedPdf", () => {
       settings: {
         numbering: "hebrew",
         outputLanguage: "he",
-        outputStyle: "polished",
+        tableOfContents: true,
+        appendixCovers: true,
         appendixMarkers: true,
         pageNumbers: true,
       },
@@ -122,6 +133,36 @@ describe("generateFinishedPdf", () => {
     ]);
   });
 
+  it("omits optional TOC and cover pages from the finished PDF", async () => {
+    const main = { ...(await pdfDocument("main-plain", [[300, 400]])), role: "main" as const };
+    const appendix = { ...(await pdfDocument("appendix-plain", [[300, 400], [300, 400]])), role: "appendix" as const };
+    const [regularFont, boldFont] = await Promise.all([
+      readFile("public/fonts/David-Regular.ttf"),
+      readFile("public/fonts/David-Bold.ttf"),
+    ]);
+
+    const bytes = await generateFinishedPdf({
+      mode: "appendix",
+      documents: [main, appendix],
+      settings: {
+        numbering: "hebrew",
+        outputLanguage: "he",
+        tableOfContents: false,
+        appendixCovers: false,
+        appendixMarkers: false,
+        pageNumbers: true,
+      },
+    }, { regularFont, boldFont });
+    const generated = await PDFDocument.load(bytes);
+
+    expect(generated.getPageCount()).toBe(3);
+    expect(generated.getPages().map((page) => page.getSize())).toEqual([
+      { width: 300, height: 400 },
+      { width: 300, height: 400 },
+      { width: 300, height: 400 },
+    ]);
+  });
+
   it("renders every planned TOC page for a long Appendix Compilation", async () => {
     const main = { ...(await pdfDocument("main-long", [[300, 400]])), role: "main" as const };
     const appendixSource = await pdfDocument("source", [[300, 400]]);
@@ -139,7 +180,7 @@ describe("generateFinishedPdf", () => {
     const bytes = await generateFinishedPdf({
       mode: "appendix",
       documents: [main, ...appendices],
-      settings: { numbering: "decimal", outputLanguage: "he", outputStyle: "minimal", appendixMarkers: false, pageNumbers: false },
+      settings: { numbering: "decimal", outputLanguage: "he", tableOfContents: true, appendixCovers: true, appendixMarkers: false, pageNumbers: false },
     }, { regularFont, boldFont });
 
     expect((await PDFDocument.load(bytes)).getPageCount()).toBe(41);
@@ -160,7 +201,7 @@ describe("generateFinishedPdf", () => {
     const bytes = await generateFinishedPdf({
       mode: "appendix",
       documents: [main, appendix],
-      settings: { numbering: "hebrew", outputLanguage: "he", outputStyle: "polished", appendixMarkers: true, pageNumbers: true },
+      settings: { numbering: "hebrew", outputLanguage: "he", tableOfContents: true, appendixCovers: true, appendixMarkers: true, pageNumbers: true },
     }, { regularFont, boldFont });
     const generated = await PDFDocument.load(bytes);
     const appendixPages = generated.getPages().slice(-4);
@@ -179,7 +220,7 @@ describe("generateFinishedPdf", () => {
     const bytes = await generateFinishedPdf({
       mode: "quick-merge",
       documents: [{ id: "image", name: "evidence.png", type: "image/png", title: "Evidence", pageCount: 1, bytes: png }],
-      settings: { numbering: "decimal", outputLanguage: "en", outputStyle: "minimal", appendixMarkers: false, pageNumbers: false },
+      settings: { numbering: "decimal", outputLanguage: "en", tableOfContents: true, appendixCovers: true, appendixMarkers: false, pageNumbers: false },
     });
     const generated = await PDFDocument.load(bytes);
 
@@ -196,7 +237,7 @@ describe("generateFinishedPdf", () => {
     const bytes = await generateFinishedPdf({
       mode: "quick-merge",
       documents: [pdf, { id: "mixed-image", name: "photo.png", type: "image/png", title: "Photo", pageCount: 1, bytes: png }],
-      settings: { numbering: "decimal", outputLanguage: "en", outputStyle: "minimal", appendixMarkers: false, pageNumbers: false },
+      settings: { numbering: "decimal", outputLanguage: "en", tableOfContents: true, appendixCovers: true, appendixMarkers: false, pageNumbers: false },
     });
     const generated = await PDFDocument.load(bytes);
 
@@ -214,7 +255,7 @@ describe("generateFinishedPdf", () => {
     const bytes = await generateFinishedPdf({
       mode: "quick-merge",
       documents: [{ id: "jpeg", name: "evidence.jpg", type: "image/jpeg", title: "Evidence", pageCount: 1, bytes: jpeg }],
-      settings: { numbering: "decimal", outputLanguage: "en", outputStyle: "minimal", appendixMarkers: false, pageNumbers: false },
+      settings: { numbering: "decimal", outputLanguage: "en", tableOfContents: true, appendixCovers: true, appendixMarkers: false, pageNumbers: false },
     });
 
     expect((await PDFDocument.load(bytes)).getPage(0).getSize()).toEqual({ width: 595.28, height: 841.89 });

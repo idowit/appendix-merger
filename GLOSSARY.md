@@ -21,16 +21,20 @@ A secondary workflow that combines ordered source documents without assigning Ma
 _Avoid_: Appendix Compilation, project
 
 **Finished PDF**:
-The generated output of either workflow. An Appendix Compilation adds its table of contents, covers, markers, and numbering; a Quick Merge only applies options selected for that workflow.
+The generated output of either workflow. An Appendix Compilation can add a table of contents, plain appendix covers, markers, and numbering; a Quick Merge only applies options selected for that workflow.
 _Avoid_: Result file, merged file
 
 **Compilation File**:
 A locally saved file that can reopen an Appendix Compilation, including its documents, ordering, titles, and output settings.
 _Avoid_: Cloud project, backup
 
-**Output Style**:
-The selected visual treatment for appendix covers and the table of contents. The supported styles are Polished and Minimal.
-_Avoid_: Template, theme
+**Table of Contents**:
+An optional generated section listing each Appendix and its actual page range in the Finished PDF.
+_Avoid_: Index
+
+**Appendix Cover**:
+An optional plain page before an Appendix containing only its ordered appendix label and title.
+_Avoid_: Divider, graphic cover
 
 **Appendix Marker**:
 The optional label placed on appendix pages to identify their appendix number.

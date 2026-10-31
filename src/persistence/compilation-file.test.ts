@@ -30,7 +30,8 @@ describe("Compilation File", () => {
       settings: {
         numbering: "hebrew" as const,
         outputLanguage: "he" as const,
-        outputStyle: "polished" as const,
+        tableOfContents: false,
+        appendixCovers: false,
         appendixMarkers: true,
         pageNumbers: true,
       },
@@ -48,12 +49,35 @@ describe("Compilation File", () => {
       format: "appendix-merger",
       version: 1,
       mode: "quick-merge",
-      settings: { numbering: "decimal", outputLanguage: "en", outputStyle: "minimal", appendixMarkers: false, pageNumbers: false },
+      settings: { numbering: "decimal", outputLanguage: "en", appendixMarkers: false, pageNumbers: false },
       documents: [{ id: "large", name: "large.pdf", type: "application/pdf", title: "Large", pageCount: 1, archivePath: "documents/001.bin", byteLength: MAX_COMPILATION_BYTES + 1 }],
     }));
     zip.file("documents/001.bin", new Uint8Array([1]));
 
     await expect(importCompilationFile(await zip.generateAsync({ type: "uint8array" })))
       .rejects.toEqual(new CompilationFileError("SIZE_LIMIT_EXCEEDED"));
+  });
+
+  it("adds TOC and cover defaults when importing an older compilation file", async () => {
+    const zip = new JSZip();
+    zip.file("manifest.json", JSON.stringify({
+      format: "appendix-merger",
+      version: 1,
+      mode: "quick-merge",
+      settings: { numbering: "decimal", outputLanguage: "en", outputStyle: "minimal", appendixMarkers: false, pageNumbers: false },
+      documents: [{ id: "one", name: "one.pdf", type: "application/pdf", title: "One", pageCount: 1, archivePath: "documents/001.bin", byteLength: 1 }],
+    }));
+    zip.file("documents/001.bin", new Uint8Array([1]));
+
+    const restored = await importCompilationFile(await zip.generateAsync({ type: "uint8array" }));
+
+    expect(restored.settings).toEqual({
+      numbering: "decimal",
+      outputLanguage: "en",
+      tableOfContents: true,
+      appendixCovers: true,
+      appendixMarkers: false,
+      pageNumbers: false,
+    });
   });
 });

@@ -1,0 +1,3 @@
+# Make generated appendix sections configurable and visually plain
+
+Allow an Appendix Compilation to omit its Table of Contents and Appendix Covers independently. When included, the Table of Contents uses the page ranges in the Finished PDF, including an Appendix Cover as the first page of its Appendix. Appendix Covers contain only the appendix label and document title, without decorative graphics or a page-range caption. Continuous page numbering starts on the first page of the Finished PDF and includes generated sections. Existing drafts and version 1 Compilation Files that predate these options default both generated sections to enabled.

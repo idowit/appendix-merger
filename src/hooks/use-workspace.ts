@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CompilationSettings, WorkflowMode } from "../domain/compilation-planner";
+import { normalizeCompilationSettings, type CompilationSettings, type WorkflowMode } from "../domain/compilation-planner";
 import { assertWithinSizeLimit, SourceInspectionError } from "../files/inspect-source";
 import { inspectWithWorker } from "../files/inspection-client";
 import { clearDraft, loadDraft, saveDraft } from "../persistence/draft-store";
@@ -8,7 +8,8 @@ import type { CompilationSnapshot, StoredDocument } from "../persistence/compila
 export const DEFAULT_SETTINGS: CompilationSettings = {
   numbering: "hebrew",
   outputLanguage: "he",
-  outputStyle: "polished",
+  tableOfContents: true,
+  appendixCovers: true,
   appendixMarkers: true,
   pageNumbers: true,
 };
@@ -32,7 +33,7 @@ export function useWorkspace() {
         if (draft) {
           setModeState(draft.mode);
           setDocuments(draft.documents);
-          setSettings(draft.settings);
+          setSettings(normalizeCompilationSettings(draft.settings));
           restored.current = true;
         }
       })
@@ -114,7 +115,7 @@ export function useWorkspace() {
   const replace = useCallback((next: CompilationSnapshot) => {
     setModeState(next.mode);
     setDocuments(next.documents);
-    setSettings(next.settings);
+    setSettings(normalizeCompilationSettings(next.settings));
   }, []);
 
   return {

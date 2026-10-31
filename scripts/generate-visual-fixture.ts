@@ -43,7 +43,7 @@ const [regularFont, boldFont] = await Promise.all([
 const finished = await generateFinishedPdf({
   mode: "appendix",
   documents: [main, appendix],
-  settings: { numbering: "hebrew", outputLanguage: "he", outputStyle: "polished", appendixMarkers: true, pageNumbers: true },
+  settings: { numbering: "hebrew", outputLanguage: "he", tableOfContents: true, appendixCovers: true, appendixMarkers: true, pageNumbers: true },
 }, { regularFont, boldFont });
 
 await mkdir("tmp/pdfs", { recursive: true });

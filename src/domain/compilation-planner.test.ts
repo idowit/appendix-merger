@@ -4,7 +4,8 @@ import { appendixLabel, CompilationValidationError, planCompilation } from "./co
 const defaultSettings = {
   numbering: "hebrew" as const,
   outputLanguage: "he" as const,
-  outputStyle: "polished" as const,
+  tableOfContents: true,
+  appendixCovers: true,
   appendixMarkers: true,
   pageNumbers: true,
 };
@@ -15,6 +16,26 @@ describe("planCompilation", () => {
     expect(appendixLabel(41, "hebrew")).toBe("מב");
     expect(appendixLabel(10, "roman")).toBe("XI");
     expect(appendixLabel(48, "roman")).toBe("XLIX");
+  });
+
+  it("can omit the TOC and appendix covers while keeping finished page ranges accurate", () => {
+    const plan = planCompilation({
+      mode: "appendix",
+      documents: [
+        { id: "main", name: "claim.pdf", title: "Claim", pageCount: 2, role: "main" },
+        { id: "appendix-a", name: "contract.pdf", title: "Contract", pageCount: 3, role: "appendix" },
+      ],
+      settings: { ...defaultSettings, tableOfContents: false, appendixCovers: false },
+    });
+
+    expect(plan).toEqual({
+      mode: "appendix",
+      totalPages: 5,
+      sections: [
+        { kind: "source", documentId: "main", startPage: 1, endPage: 2 },
+        { kind: "source", documentId: "appendix-a", appendixLabel: "א", startPage: 3, endPage: 5 },
+      ],
+    });
   });
 
   it("plans the main document, TOC, appendix cover, and appendix pages in output order", () => {

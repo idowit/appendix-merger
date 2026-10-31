@@ -2,7 +2,6 @@ export type WorkflowMode = "appendix" | "quick-merge";
 export type DocumentRole = "main" | "appendix";
 export type NumberingStyle = "hebrew" | "decimal" | "roman";
 export type OutputLanguage = "he" | "en";
-export type OutputStyle = "polished" | "minimal";
 
 export interface CompilationDocument {
   id: string;
@@ -15,9 +14,21 @@ export interface CompilationDocument {
 export interface CompilationSettings {
   numbering: NumberingStyle;
   outputLanguage: OutputLanguage;
-  outputStyle: OutputStyle;
+  tableOfContents: boolean;
+  appendixCovers: boolean;
   appendixMarkers: boolean;
   pageNumbers: boolean;
+}
+
+export function normalizeCompilationSettings(settings: Partial<CompilationSettings>): CompilationSettings {
+  return {
+    numbering: settings.numbering ?? "hebrew",
+    outputLanguage: settings.outputLanguage ?? "he",
+    tableOfContents: settings.tableOfContents ?? true,
+    appendixCovers: settings.appendixCovers ?? true,
+    appendixMarkers: settings.appendixMarkers ?? true,
+    pageNumbers: settings.pageNumbers ?? true,
+  };
 }
 
 export interface CompilationRequest {
@@ -132,20 +143,24 @@ export function planCompilation(request: CompilationRequest): CompilationPlan {
   });
   nextPage += main.pageCount;
 
-  const tocPages = Math.max(1, Math.ceil(appendices.length / 18));
-  sections.push({ kind: "toc", startPage: nextPage, endPage: nextPage + tocPages - 1 });
-  nextPage += tocPages;
+  if (request.settings.tableOfContents) {
+    const tocPages = Math.max(1, Math.ceil(appendices.length / 18));
+    sections.push({ kind: "toc", startPage: nextPage, endPage: nextPage + tocPages - 1 });
+    nextPage += tocPages;
+  }
 
   appendices.forEach((document, index) => {
     const label = appendixLabel(index, request.settings.numbering);
-    sections.push({
-      kind: "cover",
-      documentId: document.id,
-      appendixLabel: label,
-      startPage: nextPage,
-      endPage: nextPage,
-    });
-    nextPage += 1;
+    if (request.settings.appendixCovers) {
+      sections.push({
+        kind: "cover",
+        documentId: document.id,
+        appendixLabel: label,
+        startPage: nextPage,
+        endPage: nextPage,
+      });
+      nextPage += 1;
+    }
     sections.push({
       kind: "source",
       documentId: document.id,

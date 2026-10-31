@@ -4,6 +4,7 @@ import type {
   DocumentRole,
   WorkflowMode,
 } from "../domain/compilation-planner";
+import { normalizeCompilationSettings } from "../domain/compilation-planner";
 import { MAX_COMPILATION_BYTES } from "../domain/limits";
 
 export type SourceMediaType = "application/pdf" | "image/png" | "image/jpeg";
@@ -100,5 +101,5 @@ export async function importCompilationFile(bytes: Uint8Array): Promise<Compilat
     const { archivePath: _archivePath, byteLength: _byteLength, ...metadata } = document;
     documents.push({ ...metadata, type: document.type as SourceMediaType, bytes });
   }
-  return { mode: manifest.mode, documents, settings: manifest.settings };
+  return { mode: manifest.mode, documents, settings: normalizeCompilationSettings(manifest.settings) };
 }

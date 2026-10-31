@@ -137,9 +137,8 @@ export default function App() {
                   <label><span>{labels.outputLanguage}</span><select value={workspace.settings.outputLanguage} onChange={(event) => workspace.setSettings({ ...workspace.settings, outputLanguage: event.target.value as "he" | "en" })}>
                     <option value="he">{labels.hebrew}</option><option value="en">{labels.english}</option>
                   </select></label>
-                  <label><span>{labels.style}</span><select value={workspace.settings.outputStyle} onChange={(event) => workspace.setSettings({ ...workspace.settings, outputStyle: event.target.value as "polished" | "minimal" })}>
-                    <option value="polished">{labels.polished}</option><option value="minimal">{labels.minimal}</option>
-                  </select></label>
+                  <label className="toggle"><input type="checkbox" checked={workspace.settings.tableOfContents} onChange={(event) => workspace.setSettings({ ...workspace.settings, tableOfContents: event.target.checked })} /><span>{labels.tableOfContents}</span></label>
+                  <label className="toggle"><input type="checkbox" checked={workspace.settings.appendixCovers} onChange={(event) => workspace.setSettings({ ...workspace.settings, appendixCovers: event.target.checked })} /><span>{labels.appendixCovers}</span></label>
                   <label className="toggle"><input type="checkbox" checked={workspace.settings.appendixMarkers} onChange={(event) => workspace.setSettings({ ...workspace.settings, appendixMarkers: event.target.checked })} /><span>{labels.markers}</span></label>
                 </>}
                 <label className="toggle"><input type="checkbox" checked={workspace.settings.pageNumbers} onChange={(event) => workspace.setSettings({ ...workspace.settings, pageNumbers: event.target.checked })} /><span>{labels.pageNumbers}</span></label>

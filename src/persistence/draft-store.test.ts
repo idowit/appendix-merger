@@ -18,7 +18,8 @@ const draft: CompilationSnapshot = {
   settings: {
     numbering: "decimal",
     outputLanguage: "he",
-    outputStyle: "polished",
+    tableOfContents: true,
+    appendixCovers: true,
     appendixMarkers: true,
     pageNumbers: false,
   },

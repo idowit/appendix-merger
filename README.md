@@ -1,6 +1,6 @@
 # Appendix Merger
 
-A Hebrew-first desktop web application for compiling legal appendices. It combines a main document with ordered PDF, JPG, and PNG appendices; adds a table of contents, covers, appendix markers, and continuous page numbers; and keeps every source file inside the browser.
+A Hebrew-first desktop web application for compiling legal appendices. It combines a main document with ordered PDF, JPG, and PNG appendices; can add a page-accurate table of contents, plain covers, appendix markers, and continuous page numbers from page one; and keeps every source file inside the browser.
 
 The application also includes a lightweight **Quick Merge** workflow for joining files without appendix formatting. Drafts are stored locally, and a portable Appendix Compilation File (`.appendix`) can be exported for transfer.
 

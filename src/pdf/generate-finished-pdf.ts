@@ -55,8 +55,8 @@ function centeredX(font: PDFFont, text: string, size: number, pageWidth: number)
 
 function outputCopy(language: "he" | "en") {
   return language === "he"
-    ? { appendix: "נספח", pages: "עמודים", toc: "רשימת נספחים" }
-    : { appendix: "Appendix", pages: "Pages", toc: "Table of appendices" };
+    ? { appendix: "נספח", toc: "רשימת נספחים" }
+    : { appendix: "Appendix", toc: "Table of appendices" };
 }
 
 function fitLine(text: string, font: PDFFont, size: number, maxWidth: number, language: "he" | "en"): string {
@@ -96,16 +96,6 @@ function drawCenteredLines(page: PDFPage, lines: string[], font: PDFFont, size: 
     font,
     color,
   }));
-}
-
-function drawCenteredPageRange(page: PDFPage, label: string, range: string, font: PDFFont, size: number, y: number): void {
-  const gap = 7;
-  const labelWidth = font.widthOfTextAtSize(label, size);
-  const rangeWidth = font.widthOfTextAtSize(range, size);
-  const x = (page.getWidth() - labelWidth - gap - rangeWidth) / 2;
-  const color = rgb(0.35, 0.38, 0.42);
-  page.drawText(label, { x, y, size, font, color });
-  page.drawText(range, { x: x + labelWidth + gap, y, size, font, color });
 }
 
 async function appendSource(output: PDFDocument, document: StoredDocument): Promise<PDFPage[]> {
@@ -151,7 +141,6 @@ function addCover(
   output: PDFDocument,
   document: StoredDocument,
   label: string,
-  pageRange: string,
   regular: PDFFont,
   bold: PDFFont,
   snapshot: CompilationSnapshot,
@@ -162,19 +151,9 @@ function addCover(
   const copy = outputCopy(language);
   const appendix = visualText(`${copy.appendix} ${label}`, language);
   const titleLines = wrapLines(document.title || document.name.replace(/\.[^.]+$/, ""), regular, 22, width - 140, language);
-  const pagesLabel = visualText(copy.pages, language);
 
-  if (snapshot.settings.outputStyle === "polished") {
-    page.drawRectangle({ x: 0, y: height - 188, width, height: 188, color: NAVY });
-    page.drawRectangle({ x: 54, y: 54, width: width - 108, height: height - 108, borderColor: BRASS, borderWidth: 1 });
-    page.drawText(appendix, { x: centeredX(bold, appendix, 42, width), y: height - 112, size: 42, font: bold, color: rgb(1, 1, 1) });
-    drawCenteredLines(page, titleLines, regular, 22, height / 2 + 12);
-    drawCenteredPageRange(page, pagesLabel, pageRange, regular, 14, height / 2 - 70);
-  } else {
-    page.drawText(appendix, { x: centeredX(bold, appendix, 40, width), y: height / 2 + 45, size: 40, font: bold, color: INK });
-    drawCenteredLines(page, titleLines, regular, 21, height / 2);
-    drawCenteredPageRange(page, pagesLabel, pageRange, regular, 13, height / 2 - 65);
-  }
+  page.drawText(appendix, { x: centeredX(bold, appendix, 32, width), y: height / 2 + 42, size: 32, font: bold, color: INK });
+  drawCenteredLines(page, titleLines, regular, 22, height / 2 - 10);
 }
 
 function addToc(
@@ -209,7 +188,10 @@ function addToc(
         width - 170,
         language,
       );
-      const range = `${section.startPage}–${section.endPage}`;
+      const cover = plan.sections.find(
+        (candidate) => candidate.kind === "cover" && candidate.documentId === section.documentId,
+      );
+      const range = `${cover?.startPage ?? section.startPage}–${section.endPage}`;
       const rangeWidth = regular.widthOfTextAtSize(range, 12);
       const entryWidth = regular.widthOfTextAtSize(entry, 14);
       page.drawText(entry, { x: width - 54 - entryWidth, y, size: 14, font: regular, color: INK });
@@ -303,12 +285,7 @@ export async function generateFinishedPdf(
       addToc(output, plan, documents, regular, bold, snapshot);
     } else if (section.kind === "cover") {
       const document = documents.get(section.documentId);
-      const source = plan.sections.find(
-        (candidate) => candidate.kind === "source" && candidate.documentId === section.documentId,
-      );
-      if (document && source?.kind === "source") {
-        addCover(output, document, section.appendixLabel, `${source.startPage}–${source.endPage}`, regular, bold, snapshot);
-      }
+      if (document) addCover(output, document, section.appendixLabel, regular, bold, snapshot);
     } else {
       const document = documents.get(section.documentId);
       if (!document) continue;
