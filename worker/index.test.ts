@@ -31,6 +31,28 @@ describe("Authentication Worker", () => {
     }), env);
     expect(rejected.status).toBe(401);
 
+    const privacyPreservingBrowser = await worker.fetch(new Request("https://example.test/auth/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        origin: "null",
+        "sec-fetch-site": "same-origin",
+      },
+      body: new URLSearchParams({ password: "wrong" }),
+    }), env);
+    expect(privacyPreservingBrowser.status).toBe(401);
+
+    const crossSite = await worker.fetch(new Request("https://example.test/auth/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        origin: "https://attacker.test",
+        "sec-fetch-site": "cross-site",
+      },
+      body: new URLSearchParams({ password: env.APP_PASSWORD }),
+    }), env);
+    expect(crossSite.status).toBe(403);
+
     const accepted = await worker.fetch(new Request("https://example.test/auth/login", {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded", origin: "https://example.test" },

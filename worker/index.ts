@@ -51,7 +51,8 @@ async function validSession(request: Request, secret: string, now = Date.now()):
 
 function sameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
-  return !origin || origin === new URL(request.url).origin;
+  if (!origin || origin === new URL(request.url).origin) return true;
+  return request.headers.get("sec-fetch-site") === "same-origin";
 }
 
 function redirect(request: Request, path: string, status = 302, headers?: HeadersInit): Response {
