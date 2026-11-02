@@ -6,6 +6,12 @@
 /test-results
 /playwright-report
 /.wrangler
+/.dev.vars
+/.dev.vars.*
+/.env
+/.env.*
+!/.dev.vars.example
+!/.env.example
 /tmp
 *.tsbuildinfo
 *.log
