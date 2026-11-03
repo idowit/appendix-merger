@@ -43,6 +43,9 @@ test("creates and previews an Appendix Compilation in the Hebrew workspace", asy
 
   await expect(page.getByText("מסמך ראשי", { exact: true })).toBeVisible();
   await expect(page.getByText("נספח", { exact: true })).toHaveCount(2);
+  await expect(page.getByText("רוצים להמשיך בפעם אחרת?")).toBeVisible();
+  await expect(page.getByRole("button", { name: "שמירת תיק להמשך" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "פתיחת תיק שמור" })).toBeEnabled();
   await page.locator("details.settings-panel > summary").click();
   const tocOption = page.getByRole("checkbox", { name: "הוספת תוכן עניינים לפי מספרי העמודים" });
   const coverOption = page.getByRole("checkbox", { name: "הוספת דף שער לפני כל נספח" });

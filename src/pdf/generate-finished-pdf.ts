@@ -36,10 +36,9 @@ export class PdfGenerationError extends Error {
   }
 }
 
-const INK = rgb(0.09, 0.12, 0.16);
-const NAVY = rgb(0.08, 0.16, 0.25);
-const BRASS = rgb(0.67, 0.48, 0.2);
-const PAPER = rgb(0.98, 0.975, 0.955);
+const BLACK = rgb(0, 0, 0);
+const WHITE = rgb(1, 1, 1);
+const GRID = rgb(0.65, 0.65, 0.65);
 
 function assertNotCancelled(signal?: AbortSignal): void {
   if (signal?.aborted) throw new PdfGenerationError("CANCELLED");
@@ -55,8 +54,8 @@ function centeredX(font: PDFFont, text: string, size: number, pageWidth: number)
 
 function outputCopy(language: "he" | "en") {
   return language === "he"
-    ? { appendix: "נספח", toc: "רשימת נספחים" }
-    : { appendix: "Appendix", toc: "Table of appendices" };
+    ? { appendix: "נספח", name: "שם המסמך", pages: "עמודים", toc: "רשימת נספחים" }
+    : { appendix: "Appendix", name: "Document name", pages: "Pages", toc: "Table of appendices" };
 }
 
 function fitLine(text: string, font: PDFFont, size: number, maxWidth: number, language: "he" | "en"): string {
@@ -86,7 +85,7 @@ function wrapLines(text: string, font: PDFFont, size: number, maxWidth: number, 
   return visible.map((line) => fitLine(line, font, size, maxWidth, language));
 }
 
-function drawCenteredLines(page: PDFPage, lines: string[], font: PDFFont, size: number, centerY: number, color = INK): void {
+function drawCenteredLines(page: PDFPage, lines: string[], font: PDFFont, size: number, centerY: number, color = BLACK): void {
   const lineHeight = size * 1.35;
   const firstY = centerY + ((lines.length - 1) * lineHeight) / 2;
   lines.forEach((line, index) => page.drawText(line, {
@@ -96,6 +95,25 @@ function drawCenteredLines(page: PDFPage, lines: string[], font: PDFFont, size: 
     font,
     color,
   }));
+}
+
+function drawCenteredPageRange(
+  page: PDFPage,
+  label: string,
+  range: string,
+  font: PDFFont,
+  size: number,
+  y: number,
+  language: "he" | "en",
+): void {
+  const gap = 7;
+  const labelWidth = font.widthOfTextAtSize(label, size);
+  const rangeWidth = font.widthOfTextAtSize(range, size);
+  const start = (page.getWidth() - labelWidth - gap - rangeWidth) / 2;
+  const labelX = language === "he" ? start + rangeWidth + gap : start;
+  const rangeX = language === "he" ? start : start + labelWidth + gap;
+  page.drawText(label, { x: labelX, y, size, font, color: BLACK });
+  page.drawText(range, { x: rangeX, y, size, font, color: BLACK });
 }
 
 async function appendSource(output: PDFDocument, document: StoredDocument): Promise<PDFPage[]> {
@@ -141,6 +159,7 @@ function addCover(
   output: PDFDocument,
   document: StoredDocument,
   label: string,
+  pageRange: string,
   regular: PDFFont,
   bold: PDFFont,
   snapshot: CompilationSnapshot,
@@ -152,8 +171,15 @@ function addCover(
   const appendix = visualText(`${copy.appendix} ${label}`, language);
   const titleLines = wrapLines(document.title || document.name.replace(/\.[^.]+$/, ""), regular, 22, width - 140, language);
 
-  page.drawText(appendix, { x: centeredX(bold, appendix, 32, width), y: height / 2 + 42, size: 32, font: bold, color: INK });
-  drawCenteredLines(page, titleLines, regular, 22, height / 2 - 10);
+  const pagesLabel = visualText(copy.pages, language);
+
+  page.drawText(appendix, { x: centeredX(bold, appendix, 32, width), y: height / 2 + 55, size: 32, font: bold, color: BLACK });
+  drawCenteredLines(page, titleLines, regular, 22, height / 2);
+  drawCenteredPageRange(page, pagesLabel, pageRange, regular, 15, height / 2 - 78, language);
+}
+
+function centeredCellX(font: PDFFont, text: string, size: number, left: number, right: number): number {
+  return left + (right - left - font.widthOfTextAtSize(text, size)) / 2;
 }
 
 function addToc(
@@ -174,86 +200,109 @@ function addToc(
     const page = output.addPage(PageSizes.A4);
     const { width, height } = page.getSize();
     const title = visualText(copy.toc, language);
-    page.drawRectangle({ x: 0, y: height - 18, width, height: 18, color: NAVY });
-    page.drawText(title, { x: centeredX(bold, title, 25, width), y: height - 82, size: 25, font: bold, color: INK });
-    page.drawLine({ start: { x: 54, y: height - 108 }, end: { x: width - 54, y: height - 108 }, thickness: 1, color: BRASS });
-    let y = height - 154;
-    appendixSources.slice(offset, offset + 18).forEach((section) => {
+    const left = 48;
+    const right = width - 48;
+    const pagesRight = left + 82;
+    const appendixLeft = right - 92;
+    const headerTop = height - 118;
+    const rowHeight = 32;
+    const headerBottom = headerTop - rowHeight;
+    const rows = appendixSources.slice(offset, offset + 18);
+    const tableBottom = headerBottom - rows.length * rowHeight;
+    const headerSize = 12;
+    const bodySize = 13;
+
+    page.drawText(title, { x: centeredX(bold, title, 25, width), y: height - 72, size: 25, font: bold, color: BLACK });
+    [left, pagesRight, appendixLeft, right].forEach((x) => page.drawLine({
+      start: { x, y: headerTop }, end: { x, y: tableBottom }, thickness: 0.6, color: GRID,
+    }));
+    page.drawLine({ start: { x: left, y: headerTop }, end: { x: right, y: headerTop }, thickness: 0.8, color: GRID });
+    page.drawLine({ start: { x: left, y: headerBottom }, end: { x: right, y: headerBottom }, thickness: 0.8, color: GRID });
+
+    const pagesHeader = visualText(copy.pages, language);
+    const nameHeader = visualText(copy.name, language);
+    const appendixHeader = visualText(copy.appendix, language);
+    page.drawText(pagesHeader, { x: centeredCellX(bold, pagesHeader, headerSize, left, pagesRight), y: headerBottom + 10, size: headerSize, font: bold, color: BLACK });
+    page.drawText(nameHeader, { x: centeredCellX(bold, nameHeader, headerSize, pagesRight, appendixLeft), y: headerBottom + 10, size: headerSize, font: bold, color: BLACK });
+    page.drawText(appendixHeader, { x: centeredCellX(bold, appendixHeader, headerSize, appendixLeft, right), y: headerBottom + 10, size: headerSize, font: bold, color: BLACK });
+
+    let rowTop = headerBottom;
+    rows.forEach((section) => {
       const document = documents.get(section.documentId);
       if (!document) return;
-      const entry = fitLine(
-        `${copy.appendix} ${section.appendixLabel} · ${document.title}`,
-        regular,
-        14,
-        width - 170,
-        language,
-      );
+      const entry = fitLine(document.title, regular, bodySize, appendixLeft - pagesRight - 16, language);
+      const appendix = visualText(`${copy.appendix} ${section.appendixLabel}`, language);
       const cover = plan.sections.find(
         (candidate) => candidate.kind === "cover" && candidate.documentId === section.documentId,
       );
       const range = `${cover?.startPage ?? section.startPage}–${section.endPage}`;
-      const rangeWidth = regular.widthOfTextAtSize(range, 12);
-      const entryWidth = regular.widthOfTextAtSize(entry, 14);
-      page.drawText(entry, { x: width - 54 - entryWidth, y, size: 14, font: regular, color: INK });
-      page.drawText(range, { x: 54, y, size: 12, font: regular, color: rgb(0.35, 0.38, 0.42) });
-      page.drawLine({ start: { x: 54 + rangeWidth + 12, y: y + 3 }, end: { x: width - 68 - entryWidth, y: y + 3 }, thickness: 0.4, color: rgb(0.72, 0.72, 0.7), dashArray: [1.5, 3] });
-      y -= 34;
+      const baseline = rowTop - 21;
+      const entryWidth = regular.widthOfTextAtSize(entry, bodySize);
+      page.drawText(range, { x: centeredCellX(regular, range, bodySize, left, pagesRight), y: baseline, size: bodySize, font: regular, color: BLACK });
+      page.drawText(entry, { x: appendixLeft - 8 - entryWidth, y: baseline, size: bodySize, font: regular, color: BLACK });
+      page.drawText(appendix, { x: centeredCellX(regular, appendix, bodySize, appendixLeft, right), y: baseline, size: bodySize, font: regular, color: BLACK });
+      rowTop -= rowHeight;
+      page.drawLine({ start: { x: left, y: rowTop }, end: { x: right, y: rowTop }, thickness: 0.5, color: GRID });
     });
   }
 }
 
 function drawPageNumber(page: PDFPage, number: number, font: PDFFont): void {
   const text = String(number);
-  const size = 9;
+  const size = 12;
   const { width, height } = page.getSize();
   const rotation = ((page.getRotation().angle % 360) + 360) % 360;
-  const textWidth = font.widthOfTextAtSize(text, size);
+  const margin = 18;
   if (rotation === 90) {
-    page.drawText(text, { x: width - 18, y: height / 2 + textWidth / 2, size, font, color: rgb(0.35, 0.35, 0.35), rotate: degrees(-90) });
+    page.drawText(text, { x: width - margin, y: margin, size, font, color: BLACK, rotate: degrees(90) });
   } else if (rotation === 180) {
-    page.drawText(text, { x: width / 2 + textWidth / 2, y: height - 18, size, font, color: rgb(0.35, 0.35, 0.35), rotate: degrees(180) });
+    page.drawText(text, { x: width - margin, y: height - margin, size, font, color: BLACK, rotate: degrees(180) });
   } else if (rotation === 270) {
-    page.drawText(text, { x: 18, y: height / 2 - textWidth / 2, size, font, color: rgb(0.35, 0.35, 0.35), rotate: degrees(90) });
+    page.drawText(text, { x: margin, y: height - margin, size, font, color: BLACK, rotate: degrees(-90) });
   } else {
-    page.drawText(text, { x: width / 2 - textWidth / 2, y: 16, size, font, color: rgb(0.35, 0.35, 0.35) });
+    page.drawText(text, { x: margin, y: margin, size, font, color: BLACK });
   }
 }
 
 function drawAppendixMarker(page: PDFPage, label: string, font: PDFFont, language: "he" | "en"): void {
   const text = visualText(`${outputCopy(language).appendix} ${label}`, language);
-  const size = 10;
-  const padding = 8;
+  const size = 14;
+  const padding = 9;
   const boxWidth = font.widthOfTextAtSize(text, size) + padding * 2;
-  const boxHeight = 25;
-  const margin = 16;
+  const boxHeight = 34;
+  const margin = 18;
   const { width, height } = page.getSize();
   const rotation = ((page.getRotation().angle % 360) + 360) % 360;
-  let x = width - boxWidth - margin;
+  let x = margin;
   let y = height - boxHeight - margin;
   let textX = x + padding;
-  let textY = y + 8;
+  let textY = y + 10;
+  let boxRotation = 0;
   let textRotation = 0;
   if (rotation === 90) {
     x = margin;
-    y = height - margin;
-    textX = margin + boxHeight - 8;
-    textY = height - margin - padding;
-    textRotation = -90;
+    y = margin + boxWidth;
+    textX = x + boxHeight - 10;
+    textY = margin + padding;
+    boxRotation = -90;
+    textRotation = 90;
   } else if (rotation === 180) {
-    x = margin;
-    y = margin;
-    textX = margin + boxWidth - padding;
-    textY = margin + boxHeight - 8;
+    x = width - margin;
+    y = margin + boxHeight;
+    textX = x - padding;
+    textY = y - 10;
+    boxRotation = 180;
     textRotation = 180;
   } else if (rotation === 270) {
     x = width - margin;
-    y = margin;
-    textX = width - margin - boxHeight + 8;
-    textY = margin + padding;
-    textRotation = 90;
+    y = height - margin - boxWidth;
+    textX = x - boxHeight + 10;
+    textY = y + boxWidth - padding;
+    boxRotation = 90;
+    textRotation = -90;
   }
-  page.drawRectangle({ x, y, width: boxWidth, height: boxHeight, color: PAPER, borderColor: BRASS, borderWidth: 0.8, rotate: degrees(textRotation) });
-  page.drawText(text, { x: textX, y: textY, size, font, color: INK, rotate: degrees(textRotation) });
+  page.drawRectangle({ x, y, width: boxWidth, height: boxHeight, color: WHITE, borderColor: BLACK, borderWidth: 0.8, rotate: degrees(boxRotation) });
+  page.drawText(text, { x: textX, y: textY, size, font, color: BLACK, rotate: degrees(textRotation) });
 }
 
 export async function generateFinishedPdf(
@@ -285,7 +334,12 @@ export async function generateFinishedPdf(
       addToc(output, plan, documents, regular, bold, snapshot);
     } else if (section.kind === "cover") {
       const document = documents.get(section.documentId);
-      if (document) addCover(output, document, section.appendixLabel, regular, bold, snapshot);
+      const source = plan.sections.find(
+        (candidate) => candidate.kind === "source" && candidate.documentId === section.documentId,
+      );
+      if (document && source?.kind === "source") {
+        addCover(output, document, section.appendixLabel, `${section.startPage}–${source.endPage}`, regular, bold, snapshot);
+      }
     } else {
       const document = documents.get(section.documentId);
       if (!document) continue;

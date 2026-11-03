@@ -66,10 +66,11 @@ describe("generateFinishedPdf", () => {
     expect(tocText).toContain("3–5");
     expect(coverText).toContain("נספח א");
     expect(coverText).toContain("הסכם מיוחד");
-    expect(coverText).not.toContain("עמודים");
-    expect(coverText).not.toContain("3–5");
+    expect(coverText).toContain("עמודים");
+    expect(coverText).toContain("3–5");
     expect(pageOperations(generated, generated.getPage(2))).not.toMatch(/\bre\b/);
     expect(appendixText).toContain("נספח א");
+    expect(pageOperations(generated, generated.getPage(0))).toContain("0 0 0 rg");
   });
 
   it("combines Quick Merge sources in order while preserving page geometry", async () => {
@@ -210,6 +211,7 @@ describe("generateFinishedPdf", () => {
     const textOperations = appendixPages.map((page) => textOperationCount(generated, page));
     expect(textOperations.every((count) => count >= 1)).toBe(true);
     expect(textOperations[0]).toBeGreaterThan(textOperations[1]);
+    appendixPages.forEach((page) => expect(pageOperations(generated, page)).toContain("0 0 0 rg"));
   });
 
   it("converts PNG input into a centered A4 page", async () => {

@@ -26,23 +26,20 @@ async function sourcePdf(id: string, pages: Array<{ width: number; height: numbe
 }
 
 const main = { ...(await sourcePdf("Main pleading", [{ width: 612, height: 792 }, { width: 500, height: 700 }])), role: "main" as const, title: "כתב תביעה" };
-const appendix = {
-  ...(await sourcePdf("Lease agreement", [
-    { width: 400, height: 600, rotation: 90 },
-    { width: 400, height: 600, rotation: 0 },
-    { width: 400, height: 600, rotation: 180 },
-    { width: 400, height: 600, rotation: 270 },
-  ])),
+const appendices = await Promise.all([0, 90, 180, 270].map(async (rotation, index) => ({
+  ...(await sourcePdf(`Lease agreement ${rotation}`, [{ width: 400, height: 600, rotation }])),
   role: "appendix" as const,
-  title: "הסכם שכירות מסחרי ארוך לדוגמה הכולל נספחי תשלומים ערבויות התחייבויות ותנאים מיוחדים",
-};
+  title: index === 0
+    ? "הסכם שכירות מסחרי ארוך לדוגמה הכולל נספחי תשלומים ערבויות התחייבויות ותנאים מיוחדים"
+    : `נספח בדיקת סיבוב ${rotation}`,
+})));
 const [regularFont, boldFont] = await Promise.all([
   readFile("public/fonts/David-Regular.ttf"),
   readFile("public/fonts/David-Bold.ttf"),
 ]);
 const finished = await generateFinishedPdf({
   mode: "appendix",
-  documents: [main, appendix],
+  documents: [main, ...appendices],
   settings: { numbering: "hebrew", outputLanguage: "he", tableOfContents: true, appendixCovers: true, appendixMarkers: true, pageNumbers: true },
 }, { regularFont, boldFont });
 

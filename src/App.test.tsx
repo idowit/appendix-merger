@@ -10,6 +10,9 @@ describe("Appendix Merger workspace", () => {
 
     expect(document.documentElement).toHaveAttribute("dir", "rtl");
     expect(screen.getByRole("heading", { name: "עריכת תיק נספחים" })).toBeInTheDocument();
+    expect(screen.getByText("רוצים להמשיך בפעם אחרת?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "שמירת תיק להמשך" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "פתיחת תיק שמור" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "מיזוג מהיר" }));
 

@@ -37,5 +37,5 @@ An optional plain page before an Appendix containing only its ordered appendix l
 _Avoid_: Divider, graphic cover
 
 **Appendix Marker**:
-The optional label placed on appendix pages to identify their appendix number.
+The optional black-and-white label placed at a fixed top-left position on the first source page of an Appendix.
 _Avoid_: Stamp, badge

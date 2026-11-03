@@ -66,11 +66,13 @@ export default function App() {
   const saveCompilation = async () => {
     const bytes = await exportCompilationFile(workspace.snapshot);
     downloadBytes(bytes, "appendix-compilation.appendix", "application/zip");
+    workspace.setNotice({ kind: "success", message: "COMPILATION_SAVED" });
   };
   const openCompilation = async (file?: File) => {
     if (!file) return;
     try {
       workspace.replace(await importCompilationFile(new Uint8Array(await file.arrayBuffer())));
+      workspace.setNotice({ kind: "success", message: "COMPILATION_OPENED" });
     } catch (error) {
       workspace.setNotice({ kind: "error", message: error instanceof Error ? error.message : "INVALID_ARCHIVE" });
     }
@@ -145,12 +147,21 @@ export default function App() {
               </div>
             </details>
 
+            {workspace.mode === "appendix" && <section className="workspace-file-panel" aria-labelledby="workspace-file-title">
+              <div className="workspace-file-copy">
+                <strong id="workspace-file-title">{labels.continueLater}</strong>
+                <span>{labels.continueLaterHint}</span>
+              </div>
+              <div className="workspace-file-actions">
+                <button className="secondary-button" onClick={saveCompilation} disabled={!workspace.documents.length}><Save size={17} />{labels.save}</button>
+                <button className="secondary-button" onClick={() => compilationInput.current?.click()}><FolderOpen size={17} />{labels.open}</button>
+                <input ref={compilationInput} hidden type="file" accept=".appendix,.zip" onChange={(event) => {
+                  void openCompilation(event.target.files?.[0]);
+                  event.target.value = "";
+                }} />
+              </div>
+            </section>}
             <div className="workspace-tools">
-              {workspace.mode === "appendix" && <>
-                <button className="quiet-button" onClick={saveCompilation} disabled={!workspace.documents.length}><Save size={17} />{labels.save}</button>
-                <button className="quiet-button" onClick={() => compilationInput.current?.click()}><FolderOpen size={17} />{labels.open}</button>
-                <input ref={compilationInput} hidden type="file" accept=".appendix,.zip" onChange={(event) => openCompilation(event.target.files?.[0])} />
-              </>}
               <button className="quiet-button danger-text" onClick={workspace.clear} disabled={!workspace.documents.length}><Trash2 size={17} />{labels.clear}</button>
             </div>
           </div>

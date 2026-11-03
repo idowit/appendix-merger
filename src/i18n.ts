@@ -32,8 +32,10 @@ const copy = {
     english: "English",
     decimal: "1, 2, 3",
     roman: "I, II, III",
-    save: "שמירת תיק",
-    open: "פתיחת תיק",
+    continueLater: "רוצים להמשיך בפעם אחרת?",
+    continueLaterHint: "שמרו עותק של התיק במחשב ופתחו אותו כאן בפעם הבאה כדי להמשיך מאותה נקודה.",
+    save: "שמירת תיק להמשך",
+    open: "פתיחת תיק שמור",
     clear: "ניקוי סביבת העבודה",
     summary: "סיכום הקובץ",
     sourceFiles: "קבצי מקור",
@@ -72,6 +74,8 @@ const copy = {
     errorMissingDocument: "חסר מסמך בתיק הנספחים.",
     errorGeneration: "יצירת ה-PDF נכשלה. נסו שוב.",
     errorUnknown: "הפעולה נכשלה. נסו שוב.",
+    compilationSaved: "התיק נשמר במחשב. בפעם הבאה בחרו „פתיחת תיק שמור” כדי להמשיך.",
+    compilationOpened: "התיק השמור נפתח ואפשר להמשיך לעבוד.",
   },
   en: {
     appName: "Appendix Merger",
@@ -104,8 +108,10 @@ const copy = {
     english: "English",
     decimal: "1, 2, 3",
     roman: "I, II, III",
-    save: "Save compilation",
-    open: "Open compilation",
+    continueLater: "Want to continue another time?",
+    continueLaterHint: "Save a copy of this compilation to your computer, then open it here next time to continue where you left off.",
+    save: "Save to continue later",
+    open: "Open saved compilation",
     clear: "Clear workspace",
     summary: "File summary",
     sourceFiles: "Source files",
@@ -144,6 +150,8 @@ const copy = {
     errorMissingDocument: "A document is missing from this Appendix Compilation File.",
     errorGeneration: "The PDF could not be generated. Try again.",
     errorUnknown: "The action failed. Try again.",
+    compilationSaved: "The compilation was saved to your computer. Choose “Open saved compilation” next time to continue.",
+    compilationOpened: "The saved compilation is open and ready to continue.",
   },
 } as const;
 
@@ -161,6 +169,8 @@ const errorKeys = {
   UNSUPPORTED_VERSION: "errorUnsupportedVersion",
   MISSING_DOCUMENT: "errorMissingDocument",
   PDF_GENERATION_FAILED: "errorGeneration",
+  COMPILATION_SAVED: "compilationSaved",
+  COMPILATION_OPENED: "compilationOpened",
 } as const;
 
 export function translateNotice(language: InterfaceLanguage, notice: string): string {
